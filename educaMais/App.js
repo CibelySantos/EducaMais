@@ -8,7 +8,7 @@ import LoginProfessor from './src/login';
 import CadastroProfessor from './src/cadastro';
 import Home from './src/paginaInicial';
 import Atividades from './src/paginaAtividades';
-import Turmas from './src/turmas';
+import TurmasScreen from './src/TurmasScreen';
 import Sair from './src/logout'
 
 const Stack = createStackNavigator();
@@ -37,7 +37,7 @@ function MainDrawerNavigator() {
       />
       <Drawer.Screen 
         name="Turmas" 
-        component={Turmas} 
+        component={TurmasScreen} 
         options={{ title: 'Gerenciar Turmas' }} 
       />
       <Drawer.Screen 
