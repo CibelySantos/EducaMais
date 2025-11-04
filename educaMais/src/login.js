@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { supabase } from './supabaseClient';
 import bcrypt from 'bcryptjs';
+// 🚨 CORREÇÃO CRÍTICA DO IMPORT
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 export default function LoginProfessor({ navigation }) {
   const [email, setEmail] = useState('');
@@ -19,7 +21,7 @@ export default function LoginProfessor({ navigation }) {
       .eq('email', email)
       .single();
 
-    if (error) {
+    if (error || !data) { // Adicionei a verificação !data caso a consulta não retorne nada
       Alert.alert('Erro', 'Usuário não encontrado');
       return;
     }
@@ -27,8 +29,19 @@ export default function LoginProfessor({ navigation }) {
     const senhaCorreta = bcrypt.compareSync(senha, data.senha);
 
     if (senhaCorreta) {
+      // ✅ SALVANDO O ID DO PROFESSOR MANUALMENTE
+      try {
+        // Garantindo que 'data.id' seja string antes de salvar
+        await AsyncStorage.setItem('professor_id', data.id.toString());
+        await AsyncStorage.setItem('professor_nome', data.nome);
+        console.log("ID do Professor Salvo:", data.id);
+      } catch (e) {
+        // Se este log aparecer, o problema é de instalação/cache, não de código
+        console.error("Erro ao salvar ID no AsyncStorage:", e); 
+      }
+
       Alert.alert('Sucesso', `Bem-vindo, ${data.nome}!`);
-      navigation.navigate('Home');
+      navigation.navigate('Home', { nome: data.nome });
     } else {
       Alert.alert('Erro', 'Senha incorreta');
     }
