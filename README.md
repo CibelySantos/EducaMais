@@ -1,3 +1,5 @@
+Cibely Cristiny n°03 | Júlia Fortunato n°14
+
 EducaMais - Sistema de Gestão de Turmas e Atividades
 
 Este projeto é um sistema mobile para professores, desenvolvido em React Native com Expo, focado na gestão de turmas e atividades, utilizando o Supabase como backend e sistema de banco de dados.
