@@ -155,8 +155,13 @@ export default function AtividadesScreen() {
         style: 'destructive',
         onPress: async () => {
           const { error } = await supabase.from('atividades').delete().eq('id', id);
-          if (error) console.error('Erro ao excluir:', error);
-          else carregarAtividades();
+          if (error) {
+            Alert.alert('Erro', 'Não foi possível excluir a atividade. Verifique o console para mais detalhes.');
+            console.error('Erro ao excluir:', error);
+          } else {
+            Alert.alert('Sucesso', 'Atividade excluída com sucesso.');
+            carregarAtividades();
+          }
         },
       },
     ]);
