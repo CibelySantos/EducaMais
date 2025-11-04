@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { supabase } from './supabaseClient';
 import bcrypt from 'bcryptjs';
+// 🚨 CORREÇÃO CRÍTICA DO IMPORT
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
 export default function LoginProfessor({ navigation }) {
   const [email, setEmail] = useState('');
@@ -16,6 +18,7 @@ export default function LoginProfessor({ navigation }) {
 
     setLoading(true);
 
+<<<<<<< HEAD
     try {
       // Busca o professor pelo e-mail
       const { data, error } = await supabase
@@ -23,6 +26,12 @@ export default function LoginProfessor({ navigation }) {
         .select('id, nome, senha')
         .eq('email', email)
         .single();
+=======
+    if (error || !data) { // Adicionei a verificação !data caso a consulta não retorne nada
+      Alert.alert('Erro', 'Usuário não encontrado');
+      return;
+    }
+>>>>>>> f32df5602bf01fa48d5d3e3098f00bb6cd67f1bd
 
       if (error || !data) {
         Alert.alert('Erro', 'Usuário não encontrado');
@@ -30,6 +39,7 @@ export default function LoginProfessor({ navigation }) {
         return;
       }
 
+<<<<<<< HEAD
       // Compara senha com hash
       const senhaCorreta = bcrypt.compareSync(senha, data.senha);
       if (!senhaCorreta) {
@@ -49,6 +59,24 @@ export default function LoginProfessor({ navigation }) {
       Alert.alert('Erro', 'Falha ao tentar login.');
     } finally {
       setLoading(false);
+=======
+    if (senhaCorreta) {
+      // ✅ SALVANDO O ID DO PROFESSOR MANUALMENTE
+      try {
+        // Garantindo que 'data.id' seja string antes de salvar
+        await AsyncStorage.setItem('professor_id', data.id.toString());
+        await AsyncStorage.setItem('professor_nome', data.nome);
+        console.log("ID do Professor Salvo:", data.id);
+      } catch (e) {
+        // Se este log aparecer, o problema é de instalação/cache, não de código
+        console.error("Erro ao salvar ID no AsyncStorage:", e); 
+      }
+
+      Alert.alert('Sucesso', `Bem-vindo, ${data.nome}!`);
+      navigation.navigate('Home', { nome: data.nome });
+    } else {
+      Alert.alert('Erro', 'Senha incorreta');
+>>>>>>> f32df5602bf01fa48d5d3e3098f00bb6cd67f1bd
     }
   };
 
