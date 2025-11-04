@@ -52,3 +52,9 @@ npm install @supabase/supabase-js bcryptjs @react-navigation/native @react-navig
 
 2. Instalação via Expo (Melhor compatibilidade para nativos)
 npx expo install @react-native-async-storage/async-storage react-native-url-polyfill @expo/vector-icons react-native-screens react-native-safe-area-context
+
+<img width="383" height="821" alt="image" src="https://github.com/user-attachments/assets/79519d2b-9f27-4bee-b7c0-afbca95c9232" />
+<img width="377" height="818" alt="image" src="https://github.com/user-attachments/assets/4204c15f-2404-4dbc-8182-7d671d9046e2" />
+<img width="373" height="826" alt="image" src="https://github.com/user-attachments/assets/033fde47-e70b-479f-97da-95ca11fd1cc1" />
+
+
