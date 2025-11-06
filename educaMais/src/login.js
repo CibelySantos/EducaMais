@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
-import { supabase } from './supabaseClient';
-import bcrypt from 'bcryptjs';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  Image
+} from 'react-native';
+import { supabase } from './supabaseClient'; // Mantenha se precisar
+import bcrypt from 'bcryptjs'; // Mantenha se precisar
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 
-// ⚠️ Se você tiver o arquivo do logo, substitua o 'Logo Placeholder' pelo componente <Image> correto.
+
+const logoUri = 'https://i.imgur.com/k9b6I0G.png'; // URL de exemplo (apenas para simulação do visual)
 
 export default function LoginProfessor({ navigation }) {
   const [email, setEmail] = useState('');
@@ -12,6 +22,7 @@ export default function LoginProfessor({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    // ... sua lógica de login
     if (!email || !senha) {
       Alert.alert('Erro', 'Preencha todos os campos');
       return;
@@ -20,7 +31,11 @@ export default function LoginProfessor({ navigation }) {
     setLoading(true);
 
     try {
-      // Busca o professor pelo e-mail
+      // SIMULAÇÃO DE LOGIN BEM-SUCEDIDO APÓS 1 SEGUNDO
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // REMOVA ESTAS LINHAS E DESCOMENTE SUA LÓGICA DE SUPABASE QUANDO FOR USAR O CÓDIGO REAL
+      
+
       const { data, error } = await supabase
         .from('professores')
         .select('id, nome, senha')
@@ -28,7 +43,7 @@ export default function LoginProfessor({ navigation }) {
         .single();
 
       if (error || !data) {
-        Alert.alert('Erro', 'Usuário não encontrado ou senha incorreta'); // Mensagem genérica por segurança
+        Alert.alert('Erro', 'Usuário não encontrado ou senha incorreta');
         setLoading(false);
         return;
       }
@@ -36,17 +51,19 @@ export default function LoginProfessor({ navigation }) {
       // Compara senha com hash
       const senhaCorreta = bcrypt.compareSync(senha, data.senha);
       if (!senhaCorreta) {
-        Alert.alert('Erro', 'Usuário não encontrado ou senha incorreta'); // Mensagem genérica por segurança
+        Alert.alert('Erro', 'Usuário não encontrado ou senha incorreta');
         setLoading(false);
         return;
       }
 
       // Login OK → vai pra tela inicial (Drawer)
       navigation.replace('MainContent', {
-        screen: 'HomeDrawer', // tela inicial dentro do Drawer
+        screen: 'HomeDrawer',
         params: { nome: data.nome, professorId: data.id },
       });
+      
 
+     
     } catch (e) {
       console.error(e);
       Alert.alert('Erro', 'Falha ao tentar login.');
@@ -55,34 +72,52 @@ export default function LoginProfessor({ navigation }) {
     }
   };
 
-  return (
-    <View style={styles.container}>
-     
-      <View style={styles.logoPlaceholder}>
-        <Text style={styles.logoText}>EducaMais</Text>
+ return (
+  <View style={styles.container}>
+    {/* Logo da aplicação */}
+    <Image
+      source={require('../assets/EducaLogo.png')} // 🔁 Altere o caminho e nome da imagem conforme o seu projeto
+      style={styles.logoImage}
+      resizeMode="contain"
+    />
+
+      {/* Texto "Educa Mais" */}
+      <View style={styles.logoTextContainer}>
+        <Text style={styles.logoTextGreen}>Educa</Text>
+        <Text style={styles.logoTextBlue}>Mais</Text>
       </View>
 
-      <Text style={styles.welcomeText}>Bem-Vindo(a)</Text>
+      {/* Texto "Bem - vindo!" */}
+      <Text style={styles.welcomeText}>Bem - vindo!</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="E-mail"
-        placeholderTextColor="#999" // Cor do placeholder ajustada
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+      {/* Input E-mail */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="E-mail"
+          placeholderTextColor="#999"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <Text style={styles.inputLabel}>E-mail</Text>
+      </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        placeholderTextColor="#999"
-        value={senha}
-        onChangeText={setSenha}
-        secureTextEntry
-      />
+      {/* Input Senha */}
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Senha"
+          placeholderTextColor="#999"
+          value={senha}
+          onChangeText={setSenha}
+          secureTextEntry
+        />
+        <Text style={styles.inputLabel}>Senha</Text>
+      </View>
 
+      {/* Botão Entrar */}
       <TouchableOpacity
         style={styles.button}
         onPress={handleLogin}
@@ -107,86 +142,97 @@ export default function LoginProfessor({ navigation }) {
 }
 
 // --- 🎨 Estilos Baseados na Imagem ---
+const TURQUOISE_COLOR = '#4db6ac'; // Cor turquesa similar ao botão/link
+const GREEN_COLOR = '#66bb6a'; // Cor verde similar ao 'Educa'
+const BACKGROUND_COLOR = '#fff'; // Fundo branco da imagem
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    // Fundo azul claro da imagem
-    backgroundColor: '#EAF5FF',
-    padding: 30, // Aumenta o padding para dar mais espaço
+    backgroundColor: BACKGROUND_COLOR,
+    padding: 30,
+    paddingTop: 100,
   },
-  // --- Estilo do Logo (Placeholder) ---
-  logoPlaceholder: {
-    // Substitua por seu <Image> se tiver o arquivo
-    width: 100, // Reduzido de 150 para 100
-    height: 100, // Reduzido de 150 para 100
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 150,
+    height: 100,
+    marginBottom: 10,
+  },
+  logoTextContainer: {
+    flexDirection: 'row',
     marginBottom: 20,
   },
-  logoText: {
-    fontSize: 32, // Reduzido de 28 para 22
+  logoTextGreen: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#4A90E2', // Cor similar ao texto EducaMais
+    color: GREEN_COLOR,
+  },
+  logoTextBlue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: TURQUOISE_COLOR,
   },
   welcomeText: {
     fontSize: 18,
     color: '#333',
-    marginBottom: 30,
-    fontWeight: '600'
+    marginBottom: 40,
+    fontWeight: '600',
   },
-  // --- Estilo dos Inputs ---
+  inputContainer: {
+    width: '100%',
+    position: 'relative',
+    marginBottom: 20,
+  },
   input: {
     width: '100%',
-    // Fundo branco e borda suave
     backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 15, // Padding maior
-    marginBottom: 15,
+    borderRadius: 5,
+    padding: 15,
     fontSize: 16,
-    // Sombra e borda sutis para replicar o efeito da imagem
     borderWidth: 1,
-    borderColor: '#ccc', // Borda cinza clara
-    shadowColor: '#70866bff',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: '#ccc',
+    height: 50,
+    paddingLeft: 100,
   },
-  // --- Estilo do Botão Entrar ---
+  inputLabel: {
+    position: 'absolute',
+    left: 15,
+    top: 0,
+    bottom: 0,
+    textAlignVertical: 'center',
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    width: 80,
+    borderRightWidth: 1,
+    borderRightColor: '#ccc',
+    backgroundColor: '#f9f9f9',
+    paddingHorizontal: 10,
+    borderTopLeftRadius: 5,
+    borderBottomLeftRadius: 5,
+    height: 50,
+  },
   button: {
     width: '100%',
-    // Cor do botão azul claro da imagem
-    backgroundColor: '#75A3D5',
+    backgroundColor: TURQUOISE_COLOR,
     padding: 15,
-    borderRadius: 8,
+    borderRadius: 5,
     alignItems: 'center',
-    marginTop: 10,
-    // Sombra sutil para replicar o efeito da imagem
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    marginTop: 5,
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
   },
-  // --- Estilo do Link Cadastre-se ---
   cadastroButton: {
-    marginTop: 25,
-    // Alinhado ao centro (já é o default, mas garante)
+    marginTop: 20,
     alignItems: 'center',
   },
   cadastroText: {
-    // Cor do link azul claro/cinza na imagem
-    color: '#75A3D5',
+    color: TURQUOISE_COLOR,
     fontSize: 14,
-    // O sublinhado parece mais suave na imagem, usamos o default
-    textDecorationLine: 'underline',
   },
 });

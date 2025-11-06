@@ -58,3 +58,8 @@ npx expo install @react-native-async-storage/async-storage react-native-url-poly
 <img width="373" height="826" alt="image" src="https://github.com/user-attachments/assets/033fde47-e70b-479f-97da-95ca11fd1cc1" />
 
 
+Para realizar login utilize: 
+Email: julia@julia.com
+Senha:123456
+
+
