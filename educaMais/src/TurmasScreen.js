@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, Modal,
-  TextInput, Alert, ActivityIndicator
+  TextInput, Alert, ActivityIndicator, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
@@ -14,23 +14,40 @@ const TurmaCard = ({ turma, onEdit, onDelete, onVisualize }) => {
 
   return (
     <View style={styles.card}>
+
+      {/* 1. Cabeçalho/Título Principal */}
       <View style={styles.cardHeader}>
-        <Ionicons name="people" size={20} color="#000" />
+        <Ionicons name="people-circle" size={30} color={styles.nomeTurma.color} />
         <Text style={styles.nomeTurma}>{nome}</Text>
       </View>
-      <Text style={styles.periodo}>{periodo}</Text>
-      <Text style={styles.alunos}>{num_alunos || 0} alunos</Text>
 
+      {/* 2. Detalhes da Turma */}
+      <View style={styles.cardContent}>
+        <Text style={styles.periodo}>
+          <Text style={styles.detailLabel}>Período:</Text> {periodo}
+        </Text>
+        <Text style={styles.alunos}>
+          <Text style={styles.detailLabel}>Alunos:</Text> {num_alunos || 0}
+        </Text>
+      </View>
+
+
+      {/* 3. Ações (Rodapé) */}
       <View style={styles.actions}>
-        <TouchableOpacity style={[styles.button, styles.editButton]} onPress={() => onEdit(turma)}>
-          <Text style={styles.buttonText}>Editar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={() => onDelete(turma)}>
-          <Ionicons name="trash-bin-outline" size={16} color="#fff" />
-        </TouchableOpacity>
         <TouchableOpacity style={[styles.button, styles.visualizeButton]} onPress={() => onVisualize(turma)}>
           <Text style={styles.buttonText}>Visualizar</Text>
+          <Ionicons name="arrow-forward-outline" size={16} color="#fff" style={{ marginLeft: 5 }} />
         </TouchableOpacity>
+
+        {/* Botões de Ação Secundária */}
+        <View style={styles.secondaryActions}>
+          <TouchableOpacity style={[styles.button, styles.editButton]} onPress={() => onEdit(turma)}>
+            <Ionicons name="create-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={() => onDelete(turma)}>
+            <Ionicons name="trash-bin-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -38,7 +55,7 @@ const TurmaCard = ({ turma, onEdit, onDelete, onVisualize }) => {
 
 
 // --- Componente principal da tela de Turmas (TurmasScreen) ---
-const TurmasScreen = ({navigation}) => {
+const TurmasScreen = ({ navigation }) => {
   // const navigation = useNavigation();
   const isFocused = useIsFocused();
 
@@ -67,15 +84,15 @@ const TurmasScreen = ({navigation}) => {
   // 1. READ: Função para buscar as turmas do professor logado
   const fetchTurmas = async () => {
     setLoading(true);
-    
+
     // MUDANÇA CRÍTICA: LENDO DO ASYNCSTORAGE
     const professorId = await getProfessorId();
-    
+
     if (!professorId) {
       setTurmas([]);
       setLoading(false);
       Alert.alert('Sessão Expirada', 'Você precisa fazer login novamente.');
-      navigation.navigate('LoginProfessor'); 
+      navigation.navigate('LoginProfessor');
       return;
     }
 
@@ -124,11 +141,9 @@ const TurmasScreen = ({navigation}) => {
       setTurmas([]);
       setLoading(false);
       Alert.alert('Sessão Expirada', 'Você precisa fazer login novamente antes de salvar.');
-      navigation.navigate('LoginProfessor'); 
+      navigation.navigate('LoginProfessor');
       return;
     }
-
-    console.log("Usuário logado. Prosseguindo com o salvamento. Professor ID:", professorId);
 
     const turmaData = {
       nome: newTurmaName,
@@ -136,12 +151,7 @@ const TurmasScreen = ({navigation}) => {
       num_alunos: parseInt(newTurmaAlunos) || 0,
     };
 
-    console.log("Dados da Turma a Salvar:", turmaData);
-    console.log("Valor de isEditing:", isEditing); // NOVO LOG
-
     if (isEditing) {
-      console.log("chegou no editar - (IF)");
-
       // UPDATE
       const { error } = await supabase
         .from('turmas')
@@ -149,7 +159,6 @@ const TurmasScreen = ({navigation}) => {
         .eq('id', currentTurmaId);
 
       if (error) {
-        console.error("Supabase Update Error:", error);
         Alert.alert('Erro ao editar', error.message);
       } else {
         Alert.alert('Sucesso', 'Turma editada com sucesso!');
@@ -157,22 +166,17 @@ const TurmasScreen = ({navigation}) => {
         fetchTurmas();
       }
     } else {
-      console.log("chegou no cadastro - (ELSE)");
       // CREATE
       const dataToInsert = {
         ...turmaData,
-        professor_id: professorId // <-- USANDO O ID MANUAL
+        professor_id: professorId
       };
-
-      console.log("Tentando Inserir:", dataToInsert);
 
       const { error } = await supabase
         .from('turmas')
         .insert([dataToInsert]);
 
       if (error) {
-        // EXIBIÇÃO DE ERRO DETALHADO DO BANCO
-        console.error("Supabase Insert Error DETALHADO:", error);
         Alert.alert(
           'Falha no Cadastro',
           `Erro: ${error.message}. Verifique o terminal para restrições de banco de dados.`
@@ -218,7 +222,6 @@ const TurmasScreen = ({navigation}) => {
               .eq('id', turma.id);
 
             if (error) {
-              console.error("Supabase Delete Error:", error);
               Alert.alert('Erro na exclusão', error.message);
             } else {
               Alert.alert('Sucesso', 'Turma excluída com sucesso.');
@@ -233,10 +236,11 @@ const TurmasScreen = ({navigation}) => {
   };
 
   // Navega para a tela de atividades da turma
+  // Navega para a tela de atividades da turma
   const handleVisualize = (turma) => {
     navigation.navigate('Atividades', {
-      turmaId: turma.id,
-      turmaNome: turma.nome
+      turmaId: turma.id,  // <-- ID da turma sendo passado
+      turmaNome: turma.nome // <-- Nome da turma sendo passado
     });
   };
 
@@ -262,14 +266,14 @@ const TurmasScreen = ({navigation}) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Turmas</Text>
+      <Text style={styles.header}>Gerenciar Turmas</Text>
 
       <TouchableOpacity style={styles.addButton} onPress={handleAddTurma} disabled={loading}>
         <Text style={styles.addButtonText}>+ Nova Turma</Text>
       </TouchableOpacity>
 
       {loading && turmas.length === 0 ? (
-        <ActivityIndicator size="large" color="#007bff" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color="#1e88e5" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={turmas}
@@ -299,32 +303,42 @@ const TurmasScreen = ({navigation}) => {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>{isEditing ? 'Editar Turma' : 'Nova Turma'}</Text>
 
+            {/* --- Campo Nome da Turma --- */}
+            <Text style={styles.inputLabel}>Nome da turma*</Text>
             <TextInput
               style={styles.input}
-              placeholder="Nome da Turma (Ex: 1º Ano A)"
+              placeholder="Ex: 1º Ano A"
               value={newTurmaName}
               onChangeText={setNewTurmaName}
               editable={!loading}
+              placeholderTextColor="#999"
             />
 
+            {/* --- Campo Período --- */}
+            <Text style={styles.inputLabel}>Período*</Text>
             <TextInput
               style={styles.input}
-              placeholder="Período (Ex: Manhã, Tarde, Noite)"
+              placeholder="Ex: Manhã, Tarde, Noite"
               value={newTurmaPeriodo}
               onChangeText={setNewTurmaPeriodo}
               editable={!loading}
+              placeholderTextColor="#999"
             />
+
+            {/* --- Campo Número de Alunos --- */}
+            <Text style={styles.inputLabel}>Número de alunos*</Text>
             <TextInput
               style={styles.input}
-              placeholder="Número de Alunos"
+              placeholder="0"
               keyboardType="numeric"
               value={newTurmaAlunos}
               onChangeText={setNewTurmaAlunos}
               editable={!loading}
+              placeholderTextColor="#999"
             />
 
             <TouchableOpacity
-              style={[styles.button, styles.saveButton]}
+              style={[styles.button, styles.saveButton, { minWidth: '100%' }]}
               onPress={handleSaveTurma}
               disabled={loading}
             >
@@ -335,11 +349,11 @@ const TurmasScreen = ({navigation}) => {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
+              style={[styles.button, styles.cancelButton, { minWidth: '100%' }]}
               onPress={() => setModalVisible(false)}
               disabled={loading}
             >
-              <Text style={[styles.buttonText, { color: '#000' }]}>Cancelar</Text>
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -348,139 +362,218 @@ const TurmasScreen = ({navigation}) => {
   );
 };
 
-// --- Estilos de exemplo (Styles) ---
+
 const styles = StyleSheet.create({
+  // 1. GERAL/CONTAINER
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f4f7', // Fundo claro para contraste
+    paddingHorizontal: 20,
+    paddingTop: 40,
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 34, // Título maior e impactante
+    fontWeight: '900', // Ultra negrito
+    marginBottom: 25,
+    color: '#1565c0', // Azul Escuro
   },
+
+  // 2. BOTÃO DE ADICIONAR (Main CTA)
   addButton: {
-    backgroundColor: '#007bff',
-    padding: 10,
-    borderRadius: 5,
+    backgroundColor: '#1e88e5', // Azul Primário
+    paddingVertical: 16, // Mais alto
+    borderRadius: 12, // Cantos suaves
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 30, // Mais espaço após o botão
+    // Sombra mais profunda
+    ...Platform.select({
+      ios: {
+        shadowColor: '#1e88e5',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
   },
   addButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 19,
+    textTransform: 'uppercase', // Para dar mais destaque
   },
+
   listContainer: {
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
+
+  // 3. CARD DE TURMA
   card: {
     backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    flexDirection: 'column',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 18,
+    // Sombra mais sutil para o card
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 3,
+      },
+    }),
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 15,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e3f2fd', // Linha divisória suave
   },
   nomeTurma: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 10,
+    fontSize: 22,
+    fontWeight: '800', // Mais negrito para o nome
+    marginLeft: 15,
+    color: '#1565c0',
+  },
+  cardContent: {
+    marginBottom: 15,
+    paddingLeft: 45, // Alinha os detalhes com o texto do nome
+  },
+  detailLabel: {
+    fontWeight: '700',
+    color: '#333',
   },
   periodo: {
-    fontSize: 14,
-    color: '#6c757d',
+    fontSize: 15,
+    color: '#607d8b',
     marginBottom: 5,
-    marginLeft: 30,
   },
   alunos: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007bff',
-    marginBottom: 10,
-    marginLeft: 30,
+    color: '#1e88e5',
   },
+
+  // 4. AÇÕES DO CARD
   actions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 10,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e3f2fd',
+    paddingTop: 15,
   },
+  secondaryActions: {
+    flexDirection: 'row',
+  },
+  // Base Button
   button: {
-    padding: 8,
-    borderRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 8,
     marginLeft: 10,
-    minWidth: 70,
     alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'row',
   },
   editButton: {
-    backgroundColor: '#ffc107',
+    backgroundColor: '#29b6f6', // Ciano
+    paddingHorizontal: 10, // Mais compacto, só ícone
   },
   deleteButton: {
-    backgroundColor: '#dc3545',
+    backgroundColor: '#e53935', // Vermelho
+    paddingHorizontal: 10, // Mais compacto, só ícone
   },
   visualizeButton: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#1e88e5', // Azul Primário
+    paddingHorizontal: 20,
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
+    fontWeight: '600',
+    fontSize: 15,
   },
+
+  // 5. MODAL (Cadastro/Edição)
   centeredView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(21, 101, 192, 0.7)', // Fundo mais escuro
   },
   modalView: {
-    margin: 20,
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 35,
+    borderRadius: 20,
+    padding: 30,
     alignItems: 'center',
     width: '90%',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 10,
+      },
+    }),
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 28, // Título maior
     fontWeight: 'bold',
+    marginBottom: 25,
+    color: '#1565c0',
+  },
+  inputLabel: {
+    alignSelf: 'flex-start',
     marginBottom: 5,
+    marginTop: 10,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#333',
   },
   input: {
-    height: 40,
+    height: 50,
     width: '100%',
-    borderColor: '#ccc',
+    borderColor: '#b0c4de',
     borderWidth: 1,
-    borderRadius: 5,
+    borderRadius: 8,
     marginBottom: 15,
-    paddingHorizontal: 10,
+    paddingHorizontal: 15,
+    backgroundColor: '#f9f9f9', // Levemente cinza para indicar o campo
+    fontSize: 16,
   },
   saveButton: {
-    backgroundColor: '#007bff',
-    marginTop: 10,
-    width: '100%',
+    backgroundColor: '#1e88e5',
+    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 8,
   },
   cancelButton: {
-    backgroundColor: '#e9ecef',
+    backgroundColor: 'transparent',
     marginTop: 10,
-    width: '100%',
+    paddingVertical: 12,
+  },
+  cancelButtonText: {
+    color: '#1565c0',
+    fontWeight: '700', // Mais peso
+    fontSize: 16,
   },
   emptyText: {
     textAlign: 'center',
     marginTop: 50,
     fontSize: 16,
-    color: '#6c757d',
+    color: '#607d8b',
+    paddingHorizontal: 30,
   }
 });
-
 export default TurmasScreen;
