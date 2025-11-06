@@ -37,7 +37,7 @@ export default function PaginaInicial({ route, navigation }) {
                         <View style={styles.principalBotoesContainer}>
                             <TouchableOpacity 
                                 style={[styles.principalBotao, { backgroundColor: '#2ecc71' }]} 
-                                onPress={() => handleNavigate('Turmas')}
+                                onPress={() => handleNavigate('TurmasScreen')}
                             >
                                 <Text style={styles.textoBotao}>Ver Turmas</Text>
                             </TouchableOpacity>
@@ -66,7 +66,7 @@ export default function PaginaInicial({ route, navigation }) {
                 </View>
                 <TouchableOpacity 
                     style={[styles.cardButton, { backgroundColor: '#3498db' }]} 
-                    onPress={() => handleNavigate('Turmas')} 
+                    onPress={() => handleNavigate('TurmasScreen')} 
                 >
                     <Text style={styles.textoBotao}>Ir para Turmas</Text>
                 </TouchableOpacity>

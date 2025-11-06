@@ -36,7 +36,7 @@ function MainDrawerNavigator() {
         options={{ title: 'Página Inicial' }} 
       />
       <Drawer.Screen 
-        name="Turmas" 
+        name="TurmasScreen" 
         component={TurmasScreen} 
         options={{ title: 'Gerenciar Turmas' }} 
       />

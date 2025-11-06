@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, Modal, TouchableOpacity, Alert } from 'react-native';
-import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { supabase } from './supabaseClient';
 
 // --- Modal de Criação/Edição ---
@@ -113,7 +113,10 @@ export default function AtividadesScreen() {
 
   // --- Carregar atividades do banco ---
   const carregarAtividades = async () => {
-    const { data, error } = await supabase.from('atividades').select('*').order('data', { ascending: true });
+    const { data, error } = await supabase
+      .from('atividades')
+      .select('*')
+      .order('data', { ascending: true });
     if (error) {
       console.error('Erro ao carregar atividades:', error);
     } else {
@@ -128,26 +131,32 @@ export default function AtividadesScreen() {
   // --- Salvar nova ou editar atividade ---
   const handleSaveActivity = async (atividade) => {
     if (atividade.id) {
-      // Atualizar
-      const { error } = await supabase.from('atividades').update({
-        nome: atividade.nome,
-        descricao: atividade.descricao,
-        turma: atividade.turma,
-        data: atividade.data,
-      }).eq('id', atividade.id);
+      const { error } = await supabase
+        .from('atividades')
+        .update({
+          nome: atividade.nome,
+          descricao: atividade.descricao,
+          turma: atividade.turma,
+          data: atividade.data,
+        })
+        .eq('id', atividade.id);
 
       if (error) console.error('Erro ao atualizar atividade:', error);
       else carregarAtividades();
     } else {
-      // Criar nova
       const { error } = await supabase.from('atividades').insert([atividade]);
       if (error) console.error('Erro ao criar atividade:', error);
       else carregarAtividades();
     }
   };
 
-  // --- Excluir atividade ---
+  // --- Excluir atividade (corrigido) ---
   const handleDelete = async (id) => {
+    if (!id) {
+      Alert.alert('Erro', 'ID da atividade inválido.');
+      return;
+    }
+
     Alert.alert('Excluir', 'Tem certeza que deseja excluir esta atividade?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -155,12 +164,13 @@ export default function AtividadesScreen() {
         style: 'destructive',
         onPress: async () => {
           const { error } = await supabase.from('atividades').delete().eq('id', id);
+
           if (error) {
-            Alert.alert('Erro', 'Não foi possível excluir a atividade. Verifique o console para mais detalhes.');
             console.error('Erro ao excluir:', error);
+            Alert.alert('Erro', 'Não foi possível excluir a atividade.');
           } else {
+            setAtividades((prev) => prev.filter((a) => a.id !== id)); // ← Atualiza localmente também
             Alert.alert('Sucesso', 'Atividade excluída com sucesso.');
-            carregarAtividades();
           }
         },
       },
@@ -168,40 +178,41 @@ export default function AtividadesScreen() {
   };
 
   // --- Renderização dos cards ---
-  const renderActivityCard = ({ item }) => {
-    return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>{item.nome}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{item.status || 'Pendente'}</Text>
-          </View>
-        </View>
-
-        <Text style={styles.cardDescription}>{item.descricao}</Text>
-
-        <View style={styles.cardFooter}>
-          <Text style={styles.cardInfoText}>Turma: {item.turma}</Text>
-          <Text style={styles.cardInfoText}>Entrega: {item.data}</Text>
-        </View>
-
-        <View style={styles.cardActions}>
-          <TouchableOpacity onPress={() => { setActivityToEdit(item); setModalVisible(true); }}>
-            <Feather name="edit" size={20} color="#555" style={{ marginRight: 15 }} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(item.id)}>
-            <Feather name="trash-2" size={20} color="#ff4d4f" />
-          </TouchableOpacity>
+  const renderActivityCard = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{item.nome}</Text>
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>{item.status || 'Pendente'}</Text>
         </View>
       </View>
-    );
-  };
+
+      <Text style={styles.cardDescription}>{item.descricao}</Text>
+
+      <View style={styles.cardFooter}>
+        <Text style={styles.cardInfoText}>Turma: {item.turma}</Text>
+        <Text style={styles.cardInfoText}>Entrega: {item.data}</Text>
+      </View>
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity onPress={() => { setActivityToEdit(item); setModalVisible(true); }}>
+          <Feather name="edit" size={20} color="#555" style={{ marginRight: 15 }} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => handleDelete(item.id)}>
+          <Feather name="trash-2" size={20} color="#ff4d4f" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Atividades</Text>
-        <TouchableOpacity style={styles.createActivityButton} onPress={() => { setActivityToEdit(null); setModalVisible(true); }}>
+        <TouchableOpacity
+          style={styles.createActivityButton}
+          onPress={() => { setActivityToEdit(null); setModalVisible(true); }}
+        >
           <Feather name="plus" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -209,7 +220,7 @@ export default function AtividadesScreen() {
       <FlatList
         data={atividades}
         renderItem={renderActivityCard}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)} // ← Converte para string (corrige erro comum)
         contentContainerStyle={styles.listContainer}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma atividade cadastrada.</Text>}
       />
