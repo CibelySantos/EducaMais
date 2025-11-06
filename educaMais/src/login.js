@@ -55,6 +55,8 @@ export default function LoginProfessor({ navigation }) {
         setLoading(false);
         return;
       }
+      
+      await AsyncStorage.setItem('professor_id', data.id.toString());
 
       // Login OK → vai pra tela inicial (Drawer)
       navigation.replace('MainContent', {

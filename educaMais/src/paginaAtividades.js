@@ -1,48 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, Modal, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, FlatList, TextInput, Modal, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { supabase } from './supabaseClient';
+import { useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// Importação do componente de seleção nativo do React Native
+import { Picker } from '@react-native-picker/picker'; 
+
 
 // --- Modal de Criação/Edição ---
-const NovaAtividadeModal = ({ visible, onClose, activityToEdit, onSave }) => {
+// NOVO: Recebe 'turmas' (lista de turmas)
+const NovaAtividadeModal = ({ visible, onClose, activityToEdit, onSave, turmaContext, turmas }) => { 
   const [titulo, setTitulo] = useState(activityToEdit ? activityToEdit.nome : '');
   const [descricao, setDescricao] = useState(activityToEdit ? activityToEdit.descricao : '');
-  const [turma, setTurma] = useState(activityToEdit ? activityToEdit.turma : '');
   const [dataEntrega, setDataEntrega] = useState(activityToEdit ? activityToEdit.data : '');
+  
+  // NOVO: Estado para a turma selecionada no Picker
+  const [turmaSelecionada, setTurmaSelecionada] = useState('');
 
+  // Seta o valor inicial da turma
   useEffect(() => {
-    if (activityToEdit) {
-      setTitulo(activityToEdit.nome);
-      setDescricao(activityToEdit.descricao);
-      setTurma(activityToEdit.turma);
-      setDataEntrega(activityToEdit.data);
-    } else {
-      setTitulo('');
-      setDescricao('');
-      setTurma('');
-      setDataEntrega('');
+    if (visible) {
+        if (activityToEdit) {
+            setTitulo(activityToEdit.nome);
+            setDescricao(activityToEdit.descricao);
+            setDataEntrega(activityToEdit.data);
+            // Edição: usa a turma já salva
+            setTurmaSelecionada(activityToEdit.turma); 
+        } else {
+            setTitulo('');
+            setDescricao('');
+            setDataEntrega('');
+            // Criação: usa a turma que veio da navegação como padrão
+            setTurmaSelecionada(turmaContext?.turmaNome || turmas[0]?.nome || ''); 
+        }
     }
-  }, [activityToEdit]);
+  }, [activityToEdit, visible, turmaContext, turmas]);
 
   const isEditing = !!activityToEdit;
 
   const handleSave = () => {
-    if (!titulo || !descricao || !dataEntrega || !turma) {
-      Alert.alert('Erro', 'Preencha todos os campos.');
+    if (!titulo || !descricao || !dataEntrega || !turmaSelecionada) {
+      Alert.alert('Erro', 'Preencha Título, Descrição, Data de Entrega e selecione uma Turma.');
       return;
     }
-
+    
     const newActivity = {
       id: activityToEdit?.id,
       nome: titulo,
       descricao,
-      turma,
+      turma: turmaSelecionada, // Usa a turma SELECIONADA
       data: dataEntrega,
-      status: activityToEdit?.status || 'Pendente',
     };
 
     onSave(newActivity);
-    onClose();
   };
 
   return (
@@ -74,13 +85,19 @@ const NovaAtividadeModal = ({ visible, onClose, activityToEdit, onSave }) => {
             multiline
           />
 
-          <Text style={modalStyles.label}>Turma</Text>
-          <TextInput
-            style={modalStyles.input}
-            placeholder="Ex: 1º Ano A"
-            value={turma}
-            onChangeText={setTurma}
-          />
+          {/* NOVO: Picker para seleção da turma */}
+          <Text style={modalStyles.label}>Turma Selecionada</Text>
+          <View style={modalStyles.pickerContainer}>
+            <Picker
+              selectedValue={turmaSelecionada}
+              onValueChange={(itemValue) => setTurmaSelecionada(itemValue)}
+              style={modalStyles.picker}
+            >
+              {turmas.map((turma) => (
+                <Picker.Item key={turma.nome} label={turma.nome} value={turma.nome} />
+              ))}
+            </Picker>
+          </View>
 
           <Text style={modalStyles.label}>Data de Entrega</Text>
           <TextInput
@@ -107,16 +124,57 @@ const NovaAtividadeModal = ({ visible, onClose, activityToEdit, onSave }) => {
 
 // --- Tela Principal ---
 export default function AtividadesScreen() {
+    const route = useRoute();
+    const { turmaNome } = route.params || {}; 
+
   const [atividades, setAtividades] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [activityToEdit, setActivityToEdit] = useState(null);
+  
+  // NOVO: Estado para armazenar todas as turmas
+  const [turmas, setTurmas] = useState([]); 
 
-  // --- Carregar atividades do banco ---
+  // --- Função para buscar todas as turmas do professor ---
+  const getProfessorId = async () => {
+    try {
+      const id = await AsyncStorage.getItem('professor_id');
+      return id;
+    } catch (e) {
+      console.error("Erro ao ler ID do AsyncStorage:", e);
+      return null;
+    }
+  };
+
+  const fetchTurmas = async () => {
+    const professorId = await getProfessorId();
+    if (!professorId) return;
+
+    const { data, error } = await supabase
+      .from('turmas')
+      .select('nome') // Seleciona apenas o nome
+      .eq('professor_id', professorId)
+      .order('nome', { ascending: true });
+
+    if (error) {
+        console.error('Erro ao carregar lista de turmas:', error);
+    } else {
+        setTurmas(data);
+    }
+  };
+
+  // --- Carregar atividades e turmas ao focar na tela ---
   const carregarAtividades = async () => {
+    if (!turmaNome) {
+        setAtividades([]);
+        return;
+    }
+
     const { data, error } = await supabase
       .from('atividades')
       .select('*')
+      .eq('turma', turmaNome) 
       .order('data', { ascending: true });
+      
     if (error) {
       console.error('Erro ao carregar atividades:', error);
     } else {
@@ -125,32 +183,44 @@ export default function AtividadesScreen() {
   };
 
   useEffect(() => {
-    carregarAtividades();
-  }, []);
+    fetchTurmas(); // Carrega a lista de turmas
+    carregarAtividades(); 
+  }, [turmaNome]);
 
   // --- Salvar nova ou editar atividade ---
   const handleSaveActivity = async (atividade) => {
-    if (atividade.id) {
-      const { error } = await supabase
-        .from('atividades')
-        .update({
-          nome: atividade.nome,
-          descricao: atividade.descricao,
-          turma: atividade.turma,
-          data: atividade.data,
-        })
-        .eq('id', atividade.id);
+    const dataToSave = { ...atividade, turma: atividade.turma }; 
+    const { id, status, ...dataWithoutId } = dataToSave; 
+    
+    try {
+        if (id) {
+          const { error } = await supabase
+            .from('atividades')
+            .update(dataWithoutId)
+            .eq('id', id);
 
-      if (error) console.error('Erro ao atualizar atividade:', error);
-      else carregarAtividades();
-    } else {
-      const { error } = await supabase.from('atividades').insert([atividade]);
-      if (error) console.error('Erro ao criar atividade:', error);
-      else carregarAtividades();
+          if (error) throw error;
+          Alert.alert('Sucesso', 'Atividade atualizada.');
+        } else {
+          const { error } = await supabase.from('atividades').insert([dataWithoutId]);
+          
+          if (error) throw error;
+          Alert.alert('Sucesso', 'Atividade criada.');
+        }
+        
+        setModalVisible(false);
+        // Otimização: Se a turma selecionada no modal for diferente da turma atual,
+        // a atividade sumirá daqui, o que é o comportamento esperado.
+        // Recarrega a lista baseada no 'turmaNome' da rota (filtro atual da tela)
+        carregarAtividades(); 
+
+    } catch (error) {
+        console.error('Erro ao salvar atividade:', error);
+        Alert.alert('Erro no Banco de Dados', `Falha ao salvar. ${error.message}`);
     }
   };
 
-  // --- Excluir atividade (corrigido) ---
+  // ... (handleDelete e renderActivityCard permanecem iguais) ...
   const handleDelete = async (id) => {
     if (!id) {
       Alert.alert('Erro', 'ID da atividade inválido.');
@@ -169,7 +239,7 @@ export default function AtividadesScreen() {
             console.error('Erro ao excluir:', error);
             Alert.alert('Erro', 'Não foi possível excluir a atividade.');
           } else {
-            setAtividades((prev) => prev.filter((a) => a.id !== id)); // ← Atualiza localmente também
+            setAtividades((prev) => prev.filter((a) => a.id !== id)); 
             Alert.alert('Sucesso', 'Atividade excluída com sucesso.');
           }
         },
@@ -177,13 +247,12 @@ export default function AtividadesScreen() {
     ]);
   };
 
-  // --- Renderização dos cards ---
   const renderActivityCard = ({ item }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle}>{item.nome}</Text>
         <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>{item.status || 'Pendente'}</Text>
+          <Text style={styles.statusText}>Pendente</Text> 
         </View>
       </View>
 
@@ -204,11 +273,12 @@ export default function AtividadesScreen() {
       </View>
     </View>
   );
+  // ... (renderActivityCard permanece igual) ...
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Atividades</Text>
+        <Text style={styles.headerTitle}>Atividades de {turmaNome || 'Turma'}</Text>
         <TouchableOpacity
           style={styles.createActivityButton}
           onPress={() => { setActivityToEdit(null); setModalVisible(true); }}
@@ -220,9 +290,13 @@ export default function AtividadesScreen() {
       <FlatList
         data={atividades}
         renderItem={renderActivityCard}
-        keyExtractor={(item) => String(item.id)} // ← Converte para string (corrige erro comum)
+        keyExtractor={(item) => String(item.id)} 
         contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma atividade cadastrada.</Text>}
+        ListEmptyComponent={
+            <Text style={styles.emptyText}>
+                Nenhuma atividade cadastrada para esta turma ({turmaNome}).
+            </Text>
+        }
       />
 
       <NovaAtividadeModal
@@ -230,6 +304,8 @@ export default function AtividadesScreen() {
         onClose={() => setModalVisible(false)}
         activityToEdit={activityToEdit}
         onSave={handleSaveActivity}
+        turmaContext={{ turmaNome }} 
+        turmas={turmas} // NOVO: Passando a lista de turmas
       />
     </SafeAreaView>
   );
@@ -237,6 +313,7 @@ export default function AtividadesScreen() {
 
 // --- Estilos ---
 const styles = StyleSheet.create({
+  // ... (styles permanecem iguais)
   container: { flex: 1, backgroundColor: '#f5f7fa' },
   header: {
     flexDirection: 'row',
@@ -285,4 +362,18 @@ const modalStyles = StyleSheet.create({
   createButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   cancelButton: { marginTop: 10, alignItems: 'center' },
   cancelButtonText: { color: '#666', fontSize: 16 },
+  // NOVO ESTILO: Container para o Picker para melhorar a visualização
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    marginBottom: 15,
+    width: '100%',
+    overflow: 'hidden', // Importante para iOS
+    backgroundColor: '#fff',
+  },
+  picker: {
+    width: '100%',
+    height: Platform.OS === 'ios' ? 150 : 50, // Ajuste de altura para iOS
+  },
 });

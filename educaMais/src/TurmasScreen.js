@@ -8,20 +8,17 @@ import { useIsFocused } from '@react-navigation/native';
 import { supabase } from '../src/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// --- Componente do Card de Turma (TurmaCard) ---
 const TurmaCard = ({ turma, onEdit, onDelete, onVisualize }) => {
   const { nome, periodo, num_alunos } = turma;
 
   return (
     <View style={styles.card}>
 
-      {/* 1. Cabeçalho/Título Principal */}
       <View style={styles.cardHeader}>
         <Ionicons name="people-circle" size={30} color={styles.nomeTurma.color} />
         <Text style={styles.nomeTurma}>{nome}</Text>
       </View>
 
-      {/* 2. Detalhes da Turma */}
       <View style={styles.cardContent}>
         <Text style={styles.periodo}>
           <Text style={styles.detailLabel}>Período:</Text> {periodo}
@@ -31,15 +28,12 @@ const TurmaCard = ({ turma, onEdit, onDelete, onVisualize }) => {
         </Text>
       </View>
 
-
-      {/* 3. Ações (Rodapé) */}
       <View style={styles.actions}>
         <TouchableOpacity style={[styles.button, styles.visualizeButton]} onPress={() => onVisualize(turma)}>
           <Text style={styles.buttonText}>Visualizar</Text>
           <Ionicons name="arrow-forward-outline" size={16} color="#fff" style={{ marginLeft: 5 }} />
         </TouchableOpacity>
 
-        {/* Botões de Ação Secundária */}
         <View style={styles.secondaryActions}>
           <TouchableOpacity style={[styles.button, styles.editButton]} onPress={() => onEdit(turma)}>
             <Ionicons name="create-outline" size={18} color="#fff" />
@@ -53,17 +47,13 @@ const TurmaCard = ({ turma, onEdit, onDelete, onVisualize }) => {
   );
 };
 
-
-// --- Componente principal da tela de Turmas (TurmasScreen) ---
 const TurmasScreen = ({ navigation }) => {
-  // const navigation = useNavigation();
   const isFocused = useIsFocused();
 
   const [turmas, setTurmas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Estados para o formulário (modal de Cadastro/Edição)
   const [newTurmaName, setNewTurmaName] = useState('');
   const [newTurmaPeriodo, setNewTurmaPeriodo] = useState('');
   const [newTurmaAlunos, setNewTurmaAlunos] = useState('');
@@ -81,11 +71,9 @@ const TurmasScreen = ({ navigation }) => {
     }
   };
 
-  // 1. READ: Função para buscar as turmas do professor logado
   const fetchTurmas = async () => {
     setLoading(true);
 
-    // MUDANÇA CRÍTICA: LENDO DO ASYNCSTORAGE
     const professorId = await getProfessorId();
 
     if (!professorId) {
@@ -96,6 +84,8 @@ const TurmasScreen = ({ navigation }) => {
       return;
     }
 
+    // Buscando turmas, incluindo o ID (UUID) que será usado para exclusão/edição,
+    // embora o filtro de atividades utilize apenas o nome por enquanto.
     const { data, error } = await supabase
       .from('turmas')
       .select(`
@@ -125,8 +115,6 @@ const TurmasScreen = ({ navigation }) => {
     }
   }, [isFocused]);
 
-
-  // 2. CREATE/UPDATE: Função para salvar (criar ou editar) uma turma
   const handleSaveTurma = async () => {
     if (!newTurmaName) {
       Alert.alert('Erro', 'O nome da turma é obrigatório.');
@@ -134,7 +122,6 @@ const TurmasScreen = ({ navigation }) => {
     }
 
     setLoading(true);
-    // 🚨 MUDANÇA CRÍTICA: LENDO DO ASYNCSTORAGE
     const professorId = await getProfessorId();
 
     if (!professorId) {
@@ -152,7 +139,6 @@ const TurmasScreen = ({ navigation }) => {
     };
 
     if (isEditing) {
-      // UPDATE
       const { error } = await supabase
         .from('turmas')
         .update(turmaData)
@@ -166,7 +152,6 @@ const TurmasScreen = ({ navigation }) => {
         fetchTurmas();
       }
     } else {
-      // CREATE
       const dataToInsert = {
         ...turmaData,
         professor_id: professorId
@@ -193,8 +178,6 @@ const TurmasScreen = ({ navigation }) => {
     setLoading(false);
   };
 
-
-  // 3. DELETE: Função para excluir uma turma
   const handleDelete = (turma) => {
     if (turma.has_activities) {
       Alert.alert(
@@ -235,16 +218,14 @@ const TurmasScreen = ({ navigation }) => {
     );
   };
 
-  // Navega para a tela de atividades da turma
-  // Navega para a tela de atividades da turma
+  // --- FUNÇÃO CRÍTICA: Passando o nome da turma para a tela de Atividades ---
   const handleVisualize = (turma) => {
-    navigation.navigate('Atividades', {
-      turmaId: turma.id,  // <-- ID da turma sendo passado
-      turmaNome: turma.nome // <-- Nome da turma sendo passado
+    navigation.navigate('Atividades', { // Usando 'Atividades' como o nome da rota
+      // Enviamos apenas o NOME da turma, pois é a coluna usada para o filtro no DB de atividades
+      turmaNome: turma.nome 
     });
   };
 
-  // Funções de controle de Modal
   const handleAddTurma = () => {
     setIsEditing(false);
     setNewTurmaName('');
@@ -303,7 +284,6 @@ const TurmasScreen = ({ navigation }) => {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>{isEditing ? 'Editar Turma' : 'Nova Turma'}</Text>
 
-            {/* --- Campo Nome da Turma --- */}
             <Text style={styles.inputLabel}>Nome da turma*</Text>
             <TextInput
               style={styles.input}
@@ -314,7 +294,6 @@ const TurmasScreen = ({ navigation }) => {
               placeholderTextColor="#999"
             />
 
-            {/* --- Campo Período --- */}
             <Text style={styles.inputLabel}>Período*</Text>
             <TextInput
               style={styles.input}
@@ -325,7 +304,6 @@ const TurmasScreen = ({ navigation }) => {
               placeholderTextColor="#999"
             />
 
-            {/* --- Campo Número de Alunos --- */}
             <Text style={styles.inputLabel}>Número de alunos*</Text>
             <TextInput
               style={styles.input}
@@ -362,30 +340,25 @@ const TurmasScreen = ({ navigation }) => {
   );
 };
 
-
 const styles = StyleSheet.create({
-  // 1. GERAL/CONTAINER
   container: {
     flex: 1,
-    backgroundColor: '#f0f4f7', // Fundo claro para contraste
+    backgroundColor: '#f0f4f7', 
     paddingHorizontal: 20,
     paddingTop: 40,
   },
   header: {
-    fontSize: 34, // Título maior e impactante
-    fontWeight: '900', // Ultra negrito
+    fontSize: 34, 
+    fontWeight: '900', 
     marginBottom: 25,
-    color: '#1565c0', // Azul Escuro
+    color: '#1565c0', 
   },
-
-  // 2. BOTÃO DE ADICIONAR (Main CTA)
   addButton: {
-    backgroundColor: '#1e88e5', // Azul Primário
-    paddingVertical: 16, // Mais alto
-    borderRadius: 12, // Cantos suaves
+    backgroundColor: '#1e88e5', 
+    paddingVertical: 16, 
+    borderRadius: 12, 
     alignItems: 'center',
-    marginBottom: 30, // Mais espaço após o botão
-    // Sombra mais profunda
+    marginBottom: 30, 
     ...Platform.select({
       ios: {
         shadowColor: '#1e88e5',
@@ -402,20 +375,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 19,
-    textTransform: 'uppercase', // Para dar mais destaque
+    textTransform: 'uppercase', 
   },
-
   listContainer: {
     paddingBottom: 40,
   },
-
-  // 3. CARD DE TURMA
   card: {
     backgroundColor: '#fff',
     padding: 20,
     borderRadius: 15,
     marginBottom: 18,
-    // Sombra mais sutil para o card
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -434,17 +403,17 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     paddingBottom: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#e3f2fd', // Linha divisória suave
+    borderBottomColor: '#e3f2fd', 
   },
   nomeTurma: {
     fontSize: 22,
-    fontWeight: '800', // Mais negrito para o nome
+    fontWeight: '800', 
     marginLeft: 15,
     color: '#1565c0',
   },
   cardContent: {
     marginBottom: 15,
-    paddingLeft: 45, // Alinha os detalhes com o texto do nome
+    paddingLeft: 45, 
   },
   detailLabel: {
     fontWeight: '700',
@@ -460,8 +429,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e88e5',
   },
-
-  // 4. AÇÕES DO CARD
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -474,7 +441,6 @@ const styles = StyleSheet.create({
   secondaryActions: {
     flexDirection: 'row',
   },
-  // Base Button
   button: {
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -485,15 +451,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   editButton: {
-    backgroundColor: '#29b6f6', // Ciano
-    paddingHorizontal: 10, // Mais compacto, só ícone
+    backgroundColor: '#29b6f6', 
+    paddingHorizontal: 10, 
   },
   deleteButton: {
-    backgroundColor: '#e53935', // Vermelho
-    paddingHorizontal: 10, // Mais compacto, só ícone
+    backgroundColor: '#e53935', 
+    paddingHorizontal: 10, 
   },
   visualizeButton: {
-    backgroundColor: '#1e88e5', // Azul Primário
+    backgroundColor: '#1e88e5', 
     paddingHorizontal: 20,
   },
   buttonText: {
@@ -501,13 +467,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
   },
-
-  // 5. MODAL (Cadastro/Edição)
   centeredView: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(21, 101, 192, 0.7)', // Fundo mais escuro
+    backgroundColor: 'rgba(21, 101, 192, 0.7)', 
   },
   modalView: {
     backgroundColor: 'white',
@@ -528,7 +492,7 @@ const styles = StyleSheet.create({
     }),
   },
   modalTitle: {
-    fontSize: 28, // Título maior
+    fontSize: 28, 
     fontWeight: 'bold',
     marginBottom: 25,
     color: '#1565c0',
@@ -549,7 +513,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 15,
     paddingHorizontal: 15,
-    backgroundColor: '#f9f9f9', // Levemente cinza para indicar o campo
+    backgroundColor: '#f9f9f9', 
     fontSize: 16,
   },
   saveButton: {
@@ -565,7 +529,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: '#1565c0',
-    fontWeight: '700', // Mais peso
+    fontWeight: '700', 
     fontSize: 16,
   },
   emptyText: {
@@ -576,4 +540,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
   }
 });
+
 export default TurmasScreen;
